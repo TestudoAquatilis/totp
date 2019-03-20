@@ -1,0 +1,109 @@
+#!/usr/bin/python
+
+import onetimepass
+import time
+import configparser
+import os
+import sys
+
+def configpath ():
+    return os.path.join (os.environ['HOME'], '.config', 'totp')
+
+def configfilepath ():
+    return os.path.join (configpath(), 'totp.conf')
+
+def initconfig ():
+    if (os.path.isfile (configfilepath ())):
+        return
+
+    os.makedirs (configpath ())
+
+    config = configparser.ConfigParser()
+    config['display'] = {'steps-pre': '2', 'steps-post': '3', 'full-time': 'no'}
+    config['secrets'] = {'dummy': 'ABCDABCDABCDABCD'}
+
+    with open(configfilepath (), 'w') as configfile:
+        config.write (configfile)
+
+def getconfig ():
+    initconfig ()
+
+    config = configparser.ConfigParser()
+    config.read(configfilepath ())
+
+    return config
+
+def printusage (config, error = False):
+    print ('usage: ' + sys.argv[0] + ' <secret-id>, where <secret-id> is one of:')
+    for t in config['secrets']:
+        print ('  ' + t)
+
+    if error:
+        exit (1)
+
+def printtotp (secret, steps_pre, steps_post, full_time):
+    # manual timesteps
+    tsecs       = int(time.time())
+    tsecs_round = (tsecs // 30) * 30
+    offset      = tsecs - tsecs_round
+
+    for step in range (-steps_pre, steps_post+1):
+        deltat     = 30 * step
+        token      = onetimepass.get_totp(secret, clock=(tsecs + deltat))
+        window_start = deltat - offset
+        window_stop  = window_start + 30
+
+        l_delim = (" >> " if step == 0 else "")
+        r_delim = (" <<"  if step == 0 else "")
+
+        if (full_time):
+            t_start = time.strftime ("%H:%M:%S", time.localtime(tsecs + window_start))
+            t_stop  = time.strftime ("%H:%M:%S", time.localtime(tsecs + window_stop))
+
+            print ("OTP (%8s .. %8s):%4s%06d%s" % (t_start, t_stop, l_delim, token, r_delim))
+        else:
+            s_start = ("0" if window_start == 0 else "%+3d" % window_start)
+            s_stop  = ("0" if window_stop  == 0 else "%+3d" % window_stop)
+
+            print ("OTP (%4ss .. %4ss):%4s%06d%s" % (s_start, s_stop, l_delim, token, r_delim))
+
+def main (argv):
+    # config
+    config = getconfig ()
+
+    # args
+    if (len(argv) != 1):
+        printusage (config, True)
+
+    sid = argv[0]
+    if (sid not in config['secrets']):
+        printusage (config, True)
+
+    secret = config['secrets'][sid]
+
+    steps_pre  = 2
+    steps_post = 2
+    try:
+        steps_pre  = config['display'].getint('steps-pre')
+        if steps_pre < 0:
+            steps_pre = 0
+    except:
+        ...
+
+    try:
+        steps_post = config['display'].getint('steps-post')
+        if steps_post < 0:
+            steps_post = 0
+    except:
+        ...
+
+    full_time = False
+    try:
+        full_time = config['display'].getboolean('full-time')
+    except:
+        ...
+
+    printtotp (secret, steps_pre, steps_post, full_time)
+
+if __name__ == "__main__":
+   main(sys.argv[1:])

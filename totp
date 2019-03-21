@@ -26,8 +26,8 @@ def initconfig (configfile, interactive):
     config['display'] = {'steps-pre': '2', 'steps-post': '3', 'full-time': 'no'}
     config['secrets'] = {'dummy': 'ABCDABCDABCDABCD'}
 
-    with open(configfile, 'w') as configfile:
-        config.write (configfile)
+    with open(configfile, 'w') as fdconfigfile:
+        config.write (fdconfigfile)
 
     print("Create initial config %s." % configfile)
     print("Please add your secret-id.")

@@ -1,45 +1,42 @@
 #!/usr/bin/python
 
-import onetimepass
-import time
+import argparse
 import configparser
 import os
 import sys
+import time
+import onetimepass
 
-def configpath ():
-    return os.path.join (os.environ['HOME'], '.config', 'totp')
-
-def configfilepath ():
-    return os.path.join (configpath(), 'totp.conf')
-
-def initconfig ():
-    if (os.path.isfile (configfilepath ())):
+def initconfig (configfile):
+    if (os.path.isfile (configfile)):
         return
 
-    os.makedirs (configpath ())
+    ans = input ("No config file found at %s. Create? (Y/n) " % configfile)
+    if (not (ans == 'Y' or ans == '' or ans == 'y')):
+        exit(0)
+
+    dirname = os.path.dirname(configfile)
+    if (dirname != ''):
+        os.makedirs (dirname)
 
     config = configparser.ConfigParser()
     config['display'] = {'steps-pre': '2', 'steps-post': '3', 'full-time': 'no'}
     config['secrets'] = {'dummy': 'ABCDABCDABCDABCD'}
 
-    with open(configfilepath (), 'w') as configfile:
+    with open(configfile, 'w') as configfile:
         config.write (configfile)
 
-def getconfig ():
-    initconfig ()
+def getconfig (configfile):
 
     config = configparser.ConfigParser()
-    config.read(configfilepath ())
+    config.read(configfile)
+
+    if 'secrets' not in config.sections():
+        config['secrets'] = {}
+    if 'display' not in config.sections():
+        config['display'] = {}
 
     return config
-
-def printusage (config, error = False):
-    print ('usage: ' + sys.argv[0] + ' <secret-id>, where <secret-id> is one of:')
-    for t in config['secrets']:
-        print ('  ' + t)
-
-    if error:
-        exit (1)
 
 def printtotp (secret, steps_pre, steps_post, full_time):
     # manual timesteps
@@ -67,17 +64,44 @@ def printtotp (secret, steps_pre, steps_post, full_time):
 
             print ("OTP (%4ss .. %4ss):%4s%06d%s" % (s_start, s_stop, l_delim, token, r_delim))
 
+
 def main (argv):
+    configpath = os.path.join (os.environ['HOME'], '.config', 'totp')
+    configfile = os.path.join (configpath, 'totp.conf')
+
+    parser = argparse.ArgumentParser(description='TOPT generator')
+
+    parser.add_argument('-c', '--config', metavar='FILE',
+            default=configfile,
+            help="location of the configfile (default %s)" % configfile);
+    parser.add_argument('-l', '--list', action="store_true", default=False,
+            help="List available SECRET-IDS of configfile");
+
+    parser.add_argument('sid',metavar='SECRETS-ID', nargs='?', help='Select secret of configfile')
+
+    args = parser.parse_args()
+
     # config
-    config = getconfig ()
+    configfile = args.config
+    initconfig (configfile)
+    config = getconfig (configfile)
 
-    # args
-    if (len(argv) != 1):
-        printusage (config, True)
+    if (args.list):
+        print ('Available secret-ids:')
+        for t in config['secrets']:
+            print ('  ' + t)
+        exit(0)
 
-    sid = argv[0]
+    sid = args.sid
+    if (sid == None):
+        parser.print_usage()
+        exit(1)
+
     if (sid not in config['secrets']):
-        printusage (config, True)
+        print ('Secret %s has not been found in configfile %s' % (sid, configfile))
+        for t in config['secrets']:
+            print ('  ' + t)
+        exit(1)
 
     secret = config['secrets'][sid]
 

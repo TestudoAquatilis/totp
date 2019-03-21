@@ -1,8 +1,8 @@
 # Command line TOTP generator
 
 ## Dependencies
-python3
-python-onetimepass
+- python3
+- python-onetimepass
 
 ## Usage
 Just run totp (it will generate a config file in ~/.config/totp/totp.conf)

@@ -7,8 +7,11 @@ import sys
 import time
 import onetimepass
 
-def initconfig (configfile):
+def initconfig (configfile, interactive):
     if (os.path.isfile (configfile)):
+        return
+
+    if (not interactive):
         return
 
     ans = input ("No config file found at %s. Create? (Y/n) " % configfile)
@@ -25,6 +28,10 @@ def initconfig (configfile):
 
     with open(configfile, 'w') as configfile:
         config.write (configfile)
+
+    print("Create initial config %s." % configfile)
+    print("Please add your secret-id.")
+    exit(0)
 
 def getconfig (configfile):
 
@@ -69,13 +76,15 @@ def main (argv):
     configpath = os.path.join (os.environ['HOME'], '.config', 'totp')
     configfile = os.path.join (configpath, 'totp.conf')
 
-    parser = argparse.ArgumentParser(description='TOPT generator')
+    parser = argparse.ArgumentParser(description='Command line TOPT generator')
 
     parser.add_argument('-c', '--config', metavar='FILE',
             default=configfile,
-            help="location of the configfile (default %s)" % configfile);
+            help="location of the configfile (default %s)" % configfile)
     parser.add_argument('-l', '--list', action="store_true", default=False,
-            help="List available SECRET-IDS of configfile");
+            help="List available SECRET-IDS of configfile")
+    parser.add_argument('-q', '--quiet', action="store_true", default=False,
+            help="Quiet mode (non-interactive)")
 
     parser.add_argument('sid',metavar='SECRETS-ID', nargs='?', help='Select secret of configfile')
 
@@ -83,11 +92,11 @@ def main (argv):
 
     # config
     configfile = args.config
-    initconfig (configfile)
+    initconfig (configfile, not args.quiet)
     config = getconfig (configfile)
 
     if (args.list):
-        print ('Available secret-ids:')
+        if (not args.quiet): print ('Available secret-ids:')
         for t in config['secrets']:
             print ('  ' + t)
         exit(0)

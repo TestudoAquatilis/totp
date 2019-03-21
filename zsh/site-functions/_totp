@@ -1,0 +1,22 @@
+#compdef totp
+
+_totp_secrets() {
+    local -a secrets
+    local -a totp_args
+    local config_idx
+
+    totp_args=(-q)
+    config_idx="$words[(I)(-c|--config)]"
+    if (( $config_idx )) ; then
+        totp_args+=(-c $words[$((config_idx + 1))])
+    fi
+
+    secrets=($(totp ${totp_args[@]} -l 2> /dev/null))
+    _values "totp secrets" $secrets
+}
+
+_arguments \
+    '(-h --help)'{-h,--help}'[Show help message and exit]' \
+    '(-c --config)'{-c,--config}'[Specify configfile]:file:_files' \
+    '(-l --list)'{-l,--list}'[List available SECRET-IDS]' \
+    '1:topt_secrets:_totp_secrets'

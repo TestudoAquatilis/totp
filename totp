@@ -37,7 +37,6 @@ def initconfig (configfile, interactive):
     exit(0)
 
 def getconfig (configfile):
-
     config = configparser.ConfigParser()
     config.read(configfile)
 
@@ -47,6 +46,10 @@ def getconfig (configfile):
         config['display'] = {}
 
     return config
+
+def setconfig (configfile, config):
+    with open(configfile, 'w') as fdconfigfile:
+        config.write (fdconfigfile)
 
 def printtotp (secret, steps_pre, steps_post, full_time):
     # manual timesteps
@@ -86,6 +89,12 @@ def main (argv):
             help="location of the configfile (default %s)" % configfile)
     parser.add_argument('-l', '--list', action="store_true", default=False,
             help="List available SECRET-IDS of configfile")
+    parser.add_argument('-a', '--add', metavar='ID', default=None,
+            help="Add new ID to configfile - ask for SECRET")
+    parser.add_argument('-m', '--modify', metavar='ID', default=None,
+            help="Modify existing ID in configfile - ask for SECRET")
+    parser.add_argument('-d', '--delete', metavar='ID', default=None,
+            help="Remove ID from configfile")
     parser.add_argument('-q', '--quiet', action="store_true", default=False,
             help="Quiet mode (non-interactive)")
 
@@ -98,12 +107,55 @@ def main (argv):
     initconfig (configfile, not args.quiet)
     config = getconfig (configfile)
 
+    # list IDs ...
     if (args.list):
         if (not args.quiet): print ('Available secret-ids:')
         for t in config['secrets']:
             print ('  ' + t)
         exit(0)
 
+    # add/modify/delete ID
+    if (args.add != None):
+        sid = args.add
+        if (sid in config['secrets']):
+            print ('ID %s already exist. Maybe you want to modify instead (-m)?' % sid)
+            exit(1)
+
+    if (args.modify != None):
+        sid = args.modify
+        if (sid not in config['secrets']):
+            print ('ID %s does not exist. Maybe you want to add instead (-a)?' % sid)
+            exit(1)
+
+    if ((args.add != None) or (args.modify != None)):
+        secret = input('Secret for %s: ' % sid)
+        if (secret == ''):
+            exit(1)
+
+        config['secrets'][sid] = secret
+
+        setconfig (configfile, config)
+
+        exit(0)
+
+    if (args.delete != None):
+        sid = args.delete
+        if (sid not in config['secrets']):
+            print ('ID %s does not exist.' % sid)
+            exit(1)
+
+        resp = input('Delete ID %s? (Y/n): ' % sid)
+        if (resp != 'Y'):
+            exit(1)
+
+        config.remove_option ('secrets', sid)
+
+        setconfig (configfile, config)
+
+        exit(0)
+
+
+    # print OTP
     sid = args.sid
     if (sid == None):
         parser.print_usage()

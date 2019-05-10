@@ -21,6 +21,7 @@ def initconfig (configfile, interactive):
     dirname = os.path.dirname(configfile)
     if (dirname != ''):
         os.makedirs (dirname)
+        os.chmod (dirname, 0o700)
 
     config = configparser.ConfigParser()
     config['display'] = {'steps-pre': '2', 'steps-post': '3', 'full-time': 'no'}
@@ -28,6 +29,8 @@ def initconfig (configfile, interactive):
 
     with open(configfile, 'w') as fdconfigfile:
         config.write (fdconfigfile)
+
+    os.chmod (configfile, 0o600)
 
     print("Create initial config %s." % configfile)
     print("Please add your secret-id.")

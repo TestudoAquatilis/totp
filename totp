@@ -144,8 +144,8 @@ def main (argv):
             print ('ID %s does not exist.' % sid)
             exit(1)
 
-        resp = input('Delete ID %s? (Y/n): ' % sid)
-        if (resp != 'Y'):
+        resp = input('Delete ID %s? (y/N): ' % sid)
+        if (not (resp == 'Y' or resp == 'y')):
             exit(1)
 
         config.remove_option ('secrets', sid)

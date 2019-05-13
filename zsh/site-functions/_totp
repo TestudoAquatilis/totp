@@ -12,11 +12,21 @@ _totp_secrets() {
     fi
 
     secrets=($(totp ${totp_args[@]} -l 2> /dev/null))
-    _values "totp secrets" $secrets
+    [[ -n "${secrets[@]}" ]] && _values "totp secrets" ${secrets[@]}
 }
 
 _arguments \
-    '(-h --help)'{-h,--help}'[Show help message and exit]' \
     '(-c --config)'{-c,--config}'[Specify configfile]:file:_files' \
-    '(-l --list)'{-l,--list}'[List available SECRET-IDS]' \
-    '1:topt_secrets:_totp_secrets'
+    + group_encrypt \
+    '(group_encrypt group_single_arg group_totp_del)'{-g,--gpgcrypt}'[Encrypt secret using gpg]' \
+    + group_totp_id \
+    "(group_totp_id :)"{-a,--add}'+[Add new ID to configfile - ask for SECRET]:new_topt_id:' \
+    "(group_totp_id - :)"{-m,--modify}'+[Modify existing ID in configfile - ask for SECRET]:topt_id:_totp_secrets' \
+    + group_totp_del \
+    "(group_totp_del group_totp_id group_encrypt :)"{-d,--delete}'+[Remove ID from configfile]:topt_id:_totp_secrets' \
+    + group_single_arg \
+    '(- :)'{-l,--list}'[List available SECRET-IDS]' \
+    '(- :)'{-h,--help}'[Show help message and exit]' \
+    '1:topt_id:_totp_secrets'
+
+

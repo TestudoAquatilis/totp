@@ -7,6 +7,9 @@ import sys
 import time
 import onetimepass
 
+import subprocess
+import base64
+
 def initconfig (configfile, interactive):
     if (os.path.isfile (configfile)):
         return
@@ -77,6 +80,33 @@ def printtotp (secret, steps_pre, steps_post, full_time):
 
             print ("OTP (%4ss .. %4ss):%4s%06d%s" % (s_start, s_stop, l_delim, token, r_delim))
 
+def cryptsecret (secret):
+    gpg = subprocess.Popen (["gpg", "-c"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    stdout,stderr = gpg.communicate (("%s\n" % secret).encode())
+    csecret = base64.b64encode (stdout)
+    if (gpg.returncode == 0):
+        return "GPGCRYPT::%s" % csecret.decode()
+
+    print ('error during encryption')
+    exit(1)
+
+def decryptsecret (secret):
+    split_secret = secret.split ("::")
+    if (len(split_secret) == 1):
+        return secret
+
+    if (split_secret[0] == 'GPGCRYPT'):
+        gpg = subprocess.Popen (["gpg", "-d"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        stdout,stderr = gpg.communicate (base64.b64decode(("%s\n" % split_secret[1]).encode()))
+        dsecret = base64.b64encode (stdout)
+        if (gpg.returncode == 0):
+            return dsecret
+
+        print ('error during decryption')
+        exit (1)
+
+    print ('invalid secret format')
+    exit(1)
 
 def main (argv):
     configpath = os.path.join (os.environ['HOME'], '.config', 'totp')
@@ -95,6 +125,8 @@ def main (argv):
             help="Modify existing ID in configfile - ask for SECRET")
     parser.add_argument('-d', '--delete', metavar='ID', default=None,
             help="Remove ID from configfile")
+    parser.add_argument('-g', '--gpgcrypt', action="store_true", default=False,
+            help="Encrypt secret using gpg")
     parser.add_argument('-q', '--quiet', action="store_true", default=False,
             help="Quiet mode (non-interactive)")
 
@@ -132,6 +164,8 @@ def main (argv):
         if (secret == ''):
             exit(1)
 
+        if (args.gpgcrypt):
+            secret = cryptsecret (secret)
         config['secrets'][sid] = secret
 
         setconfig (configfile, config)
@@ -168,6 +202,7 @@ def main (argv):
         exit(1)
 
     secret = config['secrets'][sid]
+    secret = decryptsecret (secret)
 
     steps_pre  = 2
     steps_post = 2

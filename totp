@@ -7,6 +7,7 @@ import sys
 import time
 import onetimepass
 
+import getpass
 import subprocess
 import base64
 
@@ -160,7 +161,11 @@ def main (argv):
             exit(1)
 
     if ((args.add != None) or (args.modify != None)):
-        secret = input('Secret for %s: ' % sid)
+        if (args.gpgcrypt):
+            secret = getpass.getpass(prompt='Secret for %s: ' % sid)
+        else:
+            secret = input('Secret for %s: ' % sid)
+
         if (secret == ''):
             exit(1)
 

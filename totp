@@ -83,7 +83,7 @@ def printtotp (secret, steps_pre, steps_post, full_time):
 
 def cryptsecret (secret):
     gpg = subprocess.Popen (["gpg", "-c"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    stdout,stderr = gpg.communicate (("%s\n" % secret).encode())
+    stdout,stderr = gpg.communicate (("%s" % secret).encode())
     csecret = base64.b64encode (stdout)
     if (gpg.returncode == 0):
         return "GPGCRYPT::%s" % csecret.decode()
@@ -99,7 +99,7 @@ def decryptsecret (secret):
     if (split_secret[0] == 'GPGCRYPT'):
         gpg = subprocess.Popen (["gpg", "-d"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         stdout,stderr = gpg.communicate (base64.b64decode(("%s\n" % split_secret[1]).encode()))
-        dsecret = base64.b64encode (stdout)
+        dsecret = stdout.decode()
         if (gpg.returncode == 0):
             return dsecret
 

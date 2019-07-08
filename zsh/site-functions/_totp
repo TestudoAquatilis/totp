@@ -11,22 +11,22 @@ _totp_secrets() {
         totp_args+=(-c $words[$((config_idx + 1))])
     fi
 
-    secrets=($(totp ${totp_args[@]} -l 2> /dev/null))
+    secrets=($(eval totp ${totp_args[@]} -l 2> /dev/null))
     [[ -n "${secrets[@]}" ]] && _values "totp secrets" ${secrets[@]}
 }
 
 _arguments \
-    '(-c --config)'{-c,--config}'[Specify configfile]:file:_files' \
+    '1:topt_id:_totp_secrets' \
+    '(group_single_arg -c --config)'{-c,--config}'[Specify configfile]:file:_files' \
     + group_encrypt \
     '(group_encrypt group_single_arg group_totp_del)'{-g,--gpgcrypt}'[Encrypt secret using gpg]' \
     + group_totp_id \
-    "(group_totp_id :)"{-a,--add}'+[Add new ID to configfile - ask for SECRET]:new_topt_id:' \
-    "(group_totp_id - :)"{-m,--modify}'+[Modify existing ID in configfile - ask for SECRET]:topt_id:_totp_secrets' \
+    "(group_totp_id group_totp_del group_single_arg)"{-a,--add}'[Add new ID to configfile - ask for SECRET]' \
+    "(group_totp_id group_totp_del group_single_arg group_encrypt)"{-m,--modify}'[Modify existing ID in configfile - ask for SECRET]' \
     + group_totp_del \
-    "(group_totp_del group_totp_id group_encrypt :)"{-d,--delete}'+[Remove ID from configfile]:topt_id:_totp_secrets' \
+    "(group_totp_del group_totp_id group_single_arg group_encrypt)"{-d,--delete}'[Remove ID from configfile]' \
     + group_single_arg \
     '(- :)'{-l,--list}'[List available SECRET-IDS]' \
-    '(- :)'{-h,--help}'[Show help message and exit]' \
-    '1:topt_id:_totp_secrets'
+    '(- :)'{-h,--help}'[Show help message and exit]'
 
 
